@@ -5,6 +5,8 @@ const sources=[
   {name:'ASCCP · Enduring Guidelines',url:'https://www.asccp.org/guidelines/management-guidelines-enduring-guidelines-process/enduring-guidelines-process/',note:'延伸 HPV 分型與新技術的管理更新'},
   {name:'ASCCP · Pregnancy Practice Pearl',url:'https://www.asccp.org/clinical-practice/practice-pearls/tips-for-best-practices-on-management-of-abnormal-cervical-cancer-screening-tests-in-pregnancy/',note:'懷孕期間陰道鏡、治療限制與產後追蹤'},
   {name:'ACOG · Screening for Cervical Cancer (2026)',url:'https://www.acog.org/clinical/clinical-guidance/committee-statement/articles/2026/07/screening-for-cervical-cancer',note:'一般風險者之年齡別篩檢方式與間隔'},
+  {name:'Egemen 2020 · Risk Estimates Supporting the 2019 ASCCP Guidelines',url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC7147417/',note:'風險計算器數值來源：Tables 1A、1B、2A–2C、4A、4B、5A'},
+  {name:'Demarco 2020 · Partial HPV Genotyping (HPV16/18)',url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC7141756/',note:'無既往史時 HPV16、HPV18 與其他 12 型的分型風險'},
   {name:'ASCCP · Management Web Application',url:'https://app.asccp.org/',note:'將完整檢驗與病史帶入官方風險管理工具'}
 ];
 
@@ -121,5 +123,96 @@ const questions=[
   {level:'進階',q:'非孕 42 歲 AGC 且經間出血，除陰道鏡與 ECC 外？',a:['評估子宮內膜取樣','只做 HPV 疫苗','等五年'],correct:0,why:'≥35 歲 AGC 需內膜評估；症狀亦須診斷。'},
   {level:'進階',q:'ACOG 2026 自採 HPV 的條件與間隔？',a:['一般風險 30–65 歲、核准套組與追蹤系統到位時可考慮每 3 年','所有年齡自採每 10 年','可以取代所有術後監測'],correct:0,why:'自採必須具備通知與追蹤系統，且不能套用於所有高風險情境。'}
 ];
-root.HPV={assess,cases,questions,sources};
+
+// ===== CIN3+ risk estimator =====
+// Values transcribed from the published ASCCP 2019 risk tables (KPNC cohort):
+// Egemen D, et al. J Low Genit Tract Dis 2020;24:132-143 (Tables 1A,1B,2A,2B,2C,4A,4B,5A)
+// Demarco M, et al. J Low Genit Tract Dis 2020;24:144-147 (Table 1, HPV16/18 partial genotyping).
+// Row: [immediate %, 5-year %, management, confidence % (null = special situation), n, CIN3+ cases]; null risk = NA.
+// Management codes: r5 5-y, r3 3-y, r1 1-y follow-up, colpo, ctx colposcopy/treatment, tx treatment preferred,
+// hg (ASC-H/AGC colposcopy, HSIL+ treatment preferred), cotest (follow with cotest, not primary HPV).
+const CYTO6=['NILM','ASC-US','LSIL','ASC-H','AGC','HSIL','ALL'],CYTO3=['NILM','LOW','HIGH','ALL'];
+const riskTables={
+  '1A':{label:'無已知前次 HPV 結果',src:'Egemen 2020 Table 1A',cyto:CYTO6,
+    neg:[[0.00,0.12,'r5',100,1388153,1246],[0.04,0.40,'r3',100,25331,83],[1.1,2.0,'r1',100,3300,47],[3.4,3.8,'colpo',null,791,26],[1.1,1.5,'colpo',null,2275,27],[25,27,'ctx',53,183,43],[0.01,0.14,'r5',95,1420033,1472]],
+    pos:[[2.1,4.8,'r1',100,63541,1798],[4.4,7.3,'colpo',100,30506,1378],[4.3,6.9,'colpo',96,23659,1008],[26,33,'ctx',82,3766,863],[26,35,'ctx',80,977,254],[49,53,'ctx',100,3980,1700]],
+    hpv16:[[5.3,8.8,'colpo',98,883,181],[9.0,13,'colpo',100,561,143],[11,15,'colpo',100,323,90],[28,33,'ctx',78,155,77],[36,43,'ctx',92,49,27],[60,64,'tx',52,297,208]],
+    hpv18:[[3.0,4.5,'colpo',null,300,35],[3.5,4.6,'colpo',null,131,16],[3.1,3.9,'colpo',null,84,8],[15,18,'colpo',93,29,9],[33,41,'ctx',83,34,21],[30,30,'ctx',80,55,26]],
+    hr12:[[1.3,2.2,'r1',100,2308,142],[2.8,4.0,'r1',100,1024,106],[3.7,4.7,'r1',76,669,76],[9.5,11,'colpo',100,179,40],[5.4,5.4,'colpo',78,68,9],[35,37,'ctx',100,314,155]]},
+  '1B':{label:'前次 HPV 陰性篩檢（約 5 年內、病歷有記錄）',src:'Egemen 2020 Table 1B',cyto:CYTO6,
+    neg:[[0.00,0.09,'r5',100,769908,410],[0.01,0.36,'r3',100,14372,43],[0.44,0.79,'r1',82,1553,9],[2.8,3.3,'colpo',null,558,16],[0.78,0.88,'colpo',null,1518,11],[14,14,'colpo',98,64,8],[0.01,0.10,'r5',100,787973,497]],
+    pos:[[0.74,2.3,'r1',100,16552,225],[2.0,3.8,'r1',100,7794,189],[2.1,3.8,'r1',100,5990,143],[14,18,'colpo',100,633,77],[14,21,'colpo',100,180,28],[32,34,'ctx',100,411,117]]},
+  '2A':{label:'追蹤中：前次 HPV 陰性 ASC-US',src:'Egemen 2020 Table 2A',cyto:CYTO6,
+    neg:[[0.00,0.14,'r5',58,13918,14],[0.06,0.78,'r1',82,1701,11],[2.4,3.1,'r1',80,193,5],[5.7,5.7,'colpo',65,57,3],[0.00,0.00,'colpo',null,59,0],[11,11,'colpo',36,11,1],[0.06,0.27,'cotest',null,15939,34]],
+    pos:[[0.96,2.4,'r1',97,392,6],[2.1,6.6,'r1',97,288,13],[2.6,2.6,'r1',85,228,5],[24,24,'colpo',53,25,5],[0.00,0.00,'colpo',null,5,0],[36,36,'ctx',86,26,8]]},
+  '2B':{label:'追蹤中：前次 HPV 陰性 LSIL',src:'Egemen 2020 Table 2B',cyto:CYTO6,
+    neg:[[0.00,0.40,'r3',57,1547,3],[0.00,4.0,'r1',100,258,5],[0.00,4.4,'r1',96,133,2],[0.00,0.00,'colpo',null,6,0],[0.00,0.00,'colpo',null,5,0],[0.00,0.00,'colpo',null,4,0],[0.00,1.1,'cotest',null,1953,10]],
+    pos:[[0.00,8.6,'r1',97,71,4],[5.3,6.9,'colpo',69,88,5],[7.9,7.9,'colpo',88,87,5],[50,50,'colpo',null,8,3],[0.00,0.00,'colpo',null,1,0],[33,33,'ctx',null,3,1]]},
+  '2C':{label:'追蹤中：前次 HPV 陽性 NILM',src:'Egemen 2020 Table 2C',cyto:CYTO6,
+    neg:[[0.01,0.90,'r1',100,22625,113],[0.35,2.6,'r1',100,585,11],[2.3,2.3,'r1',71,114,2],[null,null,'colpo',null,17,0],[8.3,8.3,'colpo',83,41,3],[44,44,'ctx',71,9,4],[0.06,0.99,'r1',100,23391,133]],
+    pos:[[4.1,7.2,'colpo',60,11990,608],[5.4,9.5,'colpo',100,4953,310],[5.0,8.5,'colpo',98,2733,153],[22,29,'colpo',95,654,134],[33,40,'colpo',99,204,67],[44,50,'ctx',100,466,185]]},
+  '4A':{label:'陰道鏡 <CIN2，轉介原因為低度異常',src:'Egemen 2020 Table 4A',cyto:CYTO3,
+    neg:[[0.00,0.42,'r3',99,32361,56],[0.05,0.92,'r1',93,2937,14],[1.6,4.1,'colpo',null,149,4],[0.01,0.51,'r3',73,35603,74]],
+    pos:[[2.1,5.2,'r1',100,9352,272],[3.1,6.0,'r1',100,12843,445],[23,31,'colpo',94,1294,276]]},
+  '4B':{label:'陰道鏡 <CIN2，轉介原因為高度異常',src:'Egemen 2020 Table 4B',cyto:CYTO3,
+    neg:[[0.02,0.48,'r1',null,4650,12],[0.28,1.3,'r1',84,379,3],[5.6,14,'hg',75,109,9],[0.14,0.80,'r1',93,5161,24]],
+    pos:[[5.0,12,'colpo',80,510,36],[6.6,17,'colpo',99,689,61],[28,38,'hg',null,346,95]]},
+  '5A':{label:'CIN2／CIN3 治療後追蹤',src:'Egemen 2020 Table 5A',cyto:CYTO3,
+    neg:[[0.03,1.7,'r1',100,3525,29],[0.75,3.8,'r1',98,280,6],[18,18,'colpo',93,59,10],[0.34,2.0,'r1',100,3876,45]],
+    pos:[[5.8,12,'colpo',86,290,21],[10,21,'colpo',100,342,41],[53,63,'ctx',97,199,98]]}
+};
+const MGMT={r5:['5 年後再篩檢（回到例行間隔）','routine'],r3:['3 年後追蹤','follow'],r1:['1 年後追蹤','follow'],colpo:['陰道鏡','colpo'],
+  ctx:['陰道鏡或立即治療（皆可接受）','treat'],tx:['立即治療（優先）','treat'],hg:['ASC-H／AGC：陰道鏡；HSIL+：立即治療優先','treat'],cotest:['以共同檢測追蹤（單獨 HPV 不足以判斷）','special']};
+// Clinical action thresholds (Perkins 2020): immediate ≥60 tx preferred, ≥25 tx/colpo acceptable, ≥4 colposcopy;
+// otherwise 5-year ≥0.55 → 1-y, ≥0.15 → 3-y, else 5-y.
+function thresholdAction(imm,y5){
+  if(imm==null)return null;
+  if(imm>=60)return 'tx';if(imm>=25)return 'ctx';if(imm>=4)return 'colpo';
+  if(y5>=0.55)return 'r1';if(y5>=0.15)return 'r3';return 'r5';
+}
+function cytoKey(table,c){
+  if(table.cyto===CYTO6)return c==='none'?'ALL':c;
+  return c==='none'?'ALL':c==='NILM'?'NILM':['ASC-US','LSIL'].includes(c)?'LOW':'HIGH';
+}
+function estimateRisk(v){
+  const out={ok:false,notes:[],warnings:[]};
+  const t=riskTables[v.history];
+  if(!t){out.message='請選擇病史情境。';return out;}
+  if(!Number.isFinite(v.age)||v.age<18||v.age>100){out.message='請輸入 18–100 歲的年齡。';return out;}
+  if(v.immunosuppressed){out.message='免疫低下／HIV 不適用一般族群風險表，請依專屬規範處置。';return out;}
+  if(v.age<25){out.message='風險表以 25–65 歲為主要依據；未滿 25 歲依 ASCCP 特殊族群規範（低度異常多採 1 年後重複細胞學），不套用此估算。';return out;}
+  if(v.cytology==='unsat'){out.message='不滿意檢體沒有對應風險：2–4 個月內重採；HPV16／18 陽性直接陰道鏡。';return out;}
+  const pos=v.hpv!=='negative',typed=v.hpv==='16'||v.hpv==='18';
+  if(pos&&v.cytology==='none'){
+    out.message=typed?'HPV16／18 陽性但沒有細胞學：首選以同一檢體做反射細胞學；無法執行時可直接轉陰道鏡，並於陰道鏡時補採細胞學。':'HPV 陽性需要反射細胞學分流後才能估算風險（指引首選反射細胞學）。';
+    return out;
+  }
+  const key=cytoKey(t,v.cytology),idx=t.cyto.indexOf(key);
+  let rows=pos?t.pos:t.neg,source=t.src;
+  if(typed&&v.history==='1A'){rows=t['hpv'+v.hpv];source='Demarco 2020 Table 1';}
+  const row=rows[idx];
+  if(!row){out.message='此組合沒有對應的表格列。';return out;}
+  const [imm,y5,mg,conf,n,cases]=row;
+  let code=mg==='hg'?(v.cytology==='HSIL'?'tx':'colpo'):mg;
+  if(typed&&v.history!=='1A'){
+    out.notes.push('此情境的表格只有合併 HPV 陽性風險，未分型別；數值為合併 HPV 陽性估計。');
+    if(['r5','r3','r1'].includes(code)){code='colpo';out.notes.push('依 2019 指引原則，HPV16／18 陽性即使細胞學 NILM 仍需額外評估（陰道鏡）；已上調處置，請以官方工具核對。');}
+  }
+  if(v.hpv==='other'&&v.history==='1A'&&t.hr12[idx])out.notes.push(`16／18 陰性之其他 12 型（Demarco 2020）：即時 ${fmt(t.hr12[idx][0])}、5 年 ${fmt(t.hr12[idx][1])}。2019 指引仍以合併 HPV 陽性風險決定處置。`);
+  if(v.pregnant&&['ctx','tx','hg'].includes(code)){code='colpo';out.warnings.push('懷孕：門檻相同但不採立即治療，改為由有經驗者陰道鏡；ECC 與子宮內膜取樣禁忌。');}
+  else if(v.pregnant&&code==='colpo')out.warnings.push('懷孕：陰道鏡由有經驗者執行，ECC 與子宮內膜取樣禁忌；低度病變可延至產後 ≥4 週評估。');
+  if(['AGC','ASC-H'].includes(v.cytology)&&imm!=null&&imm<4)out.notes.push('ASC-H／AGC 屬「特殊情境」：即使風險未達 4%，仍建議陰道鏡（AGC 另需子宮頸管及可能的子宮內膜評估）。');
+  if(conf==null)out.notes.push('此列為「特殊情境」或樣本數少，建議信心分數未定；請格外審慎並以官方工具核對。');
+  else if(conf<70)out.notes.push(`建議信心分數 ${conf}%（偏低），處置接近門檻時宜保守。`);
+  if(n<100)out.notes.push(`樣本數僅 ${n.toLocaleString()} 人，估計不穩定。`);
+  if(v.age>65)out.notes.push('>65 歲：風險表主要來自 25–65 歲資料，停止篩檢前需確認足夠的既往陰性結果。');
+  if(v.symptoms)out.warnings.push('有症狀或可見病灶：需診斷性評估，不受風險估算限制。');
+  Object.assign(out,{ok:true,table:v.history,tableLabel:t.label,source,cytoRow:key,immediate:imm,fiveYear:y5,
+    management:MGMT[code][0],level:MGMT[code][1],tableManagement:MGMT[mg][0],changed:code!==mg&&mg!=='hg',
+    determinedBy:['r5','r3','r1'].includes(mg)?'5y':'immediate',threshold:thresholdAction(imm,y5),confidence:conf,n,cases});
+  return out;
+}
+function fmt(x){return x==null?'NA':(x<1&&x>0?x.toFixed(2):x===0?'0.00':String(x))+'%';}
+
+root.HPV={assess,cases,questions,sources,riskTables,estimateRisk,thresholdAction,fmtRisk:fmt};
 })(typeof globalThis!=='undefined'?globalThis:window);

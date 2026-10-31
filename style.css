@@ -7,3 +7,5 @@
 .field select{border:1px solid #cbdce4;border-radius:5px;padding:10px 12px;background:#fcfeff;width:100%;color:var(--ink);font:inherit;font-weight:500}.field select:focus-visible{outline:3px solid #e3b36b;outline-offset:2px}
 
 .tool-output{background:#214d66}.tool-output .output-icon{background:#b4d9e2;color:#1b485e}.tool-output .output-icon.urgent{background:#e8af7c}.rule-card.teen{background:#e7f1f5}.alert-list{background:#4e5d60}.rule-grid.four{grid-template-columns:repeat(4,1fr)}.rule-grid.four .rule-card{min-height:300px}@media(max-width:1000px){.rule-grid.four{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.rule-grid.four{grid-template-columns:1fr}}
+
+[hidden]{display:none!important}

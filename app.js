@@ -5,8 +5,9 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const letter=i=>String.fromCharCode(65+i);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
 
+const LEVELS={routine:['例行篩檢','✓'],follow:['短期追蹤','↻'],colpo:['陰道鏡／診斷評估','◉'],treat:['可討論立即治療','!'],special:['個別評估','?']};
 const form=$('#assessment-form');let shown=false;
-function showAssessment(scroll){const f=form.elements;const v={age:f.age.value===''?NaN:Number(f.age.value),hpv:f.hpv.value,cytology:f.cytology.value,history:f.history.value,pregnant:f.pregnant.checked,symptoms:f.symptoms.checked,immunosuppressed:f.immunosuppressed.checked};const r=assess(v);const urgent=r.alerts.length>0;$('#assessment-output').innerHTML=`<div class="output-icon ${urgent?'urgent':''}">${urgent?'!':'✓'}</div><span class="kicker">RISK-BASED PATHWAY</span><h3>${esc(r.stage)}</h3><p>${esc(r.stageNote)}</p>${urgent?`<div class="alert-list"><strong>先留意的特殊情境</strong><ul>${r.alerts.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}<div class="criteria">${r.actions.map((a,i)=>`<div><strong>${String(i+1).padStart(2,'0')} · ${esc(a.title)}</strong><p>${esc(a.body)}</p></div>`).join('')}</div><div class="output-note">本頁不計算個人 CIN3+ 風險；精確處置請以 ASCCP 官方工具和當地流程核對。症狀、懷孕或免疫低下需個別評估。</div>`;shown=true;if(scroll)$('#assessment-output').scrollIntoView({behavior:'smooth',block:'nearest'});}
+function showAssessment(scroll){const f=form.elements;const v={age:f.age.value===''?NaN:Number(f.age.value),hpv:f.hpv.value,cytology:f.cytology.value,history:f.history.value,pregnant:f.pregnant.checked,symptoms:f.symptoms.checked,immunosuppressed:f.immunosuppressed.checked};const r=assess(v);const urgent=r.alerts.length>0;const lv=LEVELS[r.level]||LEVELS.special;const out=$('#assessment-output');out.dataset.level=r.level||'';out.innerHTML=`<div class="output-top"><div class="output-icon" aria-hidden="true">${lv[1]}</div><span class="level-badge">${lv[0]}</span></div><span class="kicker">RISK-BASED PATHWAY</span><h3>${esc(r.stage)}</h3><p>${esc(r.stageNote)}</p>${urgent?`<div class="alert-list"><strong>先留意的特殊情境</strong><ul>${r.alerts.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}<div class="criteria">${r.actions.map((a,i)=>`<div><strong>${String(i+1).padStart(2,'0')} · ${esc(a.title)}</strong><p>${esc(a.body)}</p></div>`).join('')}</div><div class="output-note">本頁不計算個人 CIN3+ 風險；精確處置請以 ASCCP 官方工具和當地流程核對。症狀、懷孕或免疫低下需個別評估。</div>`;shown=true;if(scroll)$('#assessment-output').scrollIntoView({behavior:'smooth',block:'nearest'});}
 form.addEventListener('submit',e=>{e.preventDefault();showAssessment(true);});
 form.addEventListener('change',()=>{if(shown)showAssessment(false);});
 
@@ -27,4 +28,10 @@ function renderQuiz(){const q=pool[index];$('#quiz-progress').textContent=submit
 document.querySelectorAll('[data-level]').forEach(b=>b.addEventListener('click',()=>setQuizLevel(b.dataset.level)));setQuizLevel(level);
 
 $('#source-list').innerHTML=sources.map((s,i)=>`<a class="source-item" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer"><span>${String(i+1).padStart(2,'0')}</span><span><strong>${esc(s.name)}</strong><small>${esc(s.note)}</small></span><span aria-hidden="true">↗</span></a>`).join('');
+
+// Highlight the nav link of the section in view.
+const links=[...document.querySelectorAll('.topbar nav a')];
+const targets=links.map(a=>document.querySelector(a.getAttribute('href')));let ticking=false;
+function markCurrent(){ticking=false;const y=innerHeight*.4;let cur=-1;targets.forEach((t,i)=>{if(t&&t.getBoundingClientRect().top<=y)cur=i;});if(cur>=0&&targets[cur].getBoundingClientRect().bottom<0)cur=-1;links.forEach((a,i)=>a.classList.toggle('current',i===cur));}
+addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(markCurrent);}},{passive:true});markCurrent();
 })();

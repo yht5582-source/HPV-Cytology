@@ -78,8 +78,16 @@ function assess(v){
     actions=[{title:'核對完整資料',body:'確認檢驗方法、HPV 型別、抹片 Bethesda 分類、近 5 年 HPV 結果、既往陰道鏡／病理與治療史，再依 ASCCP 官方工具決定。'}];
   }
   if(v.symptoms)actions.unshift({title:'症狀另需診斷',body:'接觸性出血、持續異常出血或可見病灶，不應等待無症狀篩檢間隔；安排適當檢查與轉診。'});
-  actions.push({title:'安全核對',body:'本頁不計算個人 CIN3+ 風險。決策前使用 ASCCP 官方工具與當地流程核對；症狀、免疫低下或懷孕需個別評估。'});
-  return {stage,stageNote,alerts,actions};
+  return {stage,stageNote,alerts,actions,level:levelOf(stage,actions)};
+}
+
+// Urgency tier for the result display: routine < follow < colpo < treat; special = individualised.
+function levelOf(stage,actions){
+  if(/立即治療/.test(actions.find(a=>!/症狀/.test(a.title))?.title||''))return 'treat';
+  if(/特殊族群|重採|整合|請輸入/.test(stage))return 'special';
+  if(/陰道鏡|診斷/.test(stage))return 'colpo';
+  if(/例行|NILM、未做/.test(stage))return 'routine';
+  return 'follow';
 }
 
 const cases=[

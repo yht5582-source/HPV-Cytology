@@ -60,6 +60,15 @@ test('immunosuppression, symptoms, invalid age',()=>{
   assert.match(a0({hpv:'negative',symptoms:true}).title,/症狀/);
   assert.match(st({age:NaN}),/年齡/);
 });
+test('urgency level tiers',()=>{
+  assert.equal(assess(base).level,'colpo');
+  assert.equal(assess({...base,cytology:'HSIL'}).level,'treat');
+  assert.equal(assess({...base,hpv:'negative'}).level,'routine');
+  assert.equal(assess({...base,hpv:'other'}).level,'follow');
+  assert.equal(assess({...base,history:'post',hpv:'negative'}).level,'follow');
+  assert.equal(assess({...base,immunosuppressed:true}).level,'special');
+  assert.equal(assess({...base,cytology:'unsat',hpv:'negative'}).level,'special');
+});
 test('case and quiz collections are complete and answer indices valid',()=>{
   assert.equal(cases.length,6);assert.equal(questions.filter(q=>q.level==='住院醫師').length,10);
   assert.equal(questions.filter(q=>q.level==='進階').length,10);
